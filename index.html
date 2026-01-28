@@ -109,6 +109,27 @@
             color: #fff;
             border: none;
         }
+        #image-settings {
+            display: none;
+            margin-top: 8px;
+            font-size: 0.9em;
+        }
+        #image-count {
+            color: #28a745;
+            font-weight: 500;
+        }
+        #image-size-control {
+            margin-top: 6px;
+        }
+        #image-size-control input[type="range"] {
+            width: 120px;
+            vertical-align: middle;
+        }
+        #image-size-value {
+            display: inline-block;
+            width: 45px;
+            text-align: right;
+        }
     </style>
 </head>
 <body>
@@ -147,6 +168,12 @@
         <div id="upload-images-row">
             <label>Or upload images: <button id="upload-images-btn">Upload Class Images</button></label>
             <input type="file" id="image-file-input" accept="image/*" multiple style="display: none;">
+            <div id="image-settings">
+                <div id="image-count"></div>
+                <div id="image-size-control">
+                    <label>Max image size: <input type="range" id="image-size-slider" min="40" max="100" value="40"> <span id="image-size-value">40px</span></label>
+                </div>
+            </div>
         </div>
 
         <div>
@@ -192,6 +219,20 @@
         let blackedOutCells = new Set();
         let studentImages = {}; // Map of "lastName,firstName" -> imageDataUrl
         let pendingImages = []; // Temporarily holds images during modal editing
+        let imageMaxSize = 40; // Default max image size in px
+
+        function updateImageSettings() {
+            const imageCount = Object.keys(studentImages).length;
+            const settingsDiv = document.getElementById('image-settings');
+            const countDiv = document.getElementById('image-count');
+
+            if (imageCount > 0) {
+                settingsDiv.style.display = 'block';
+                countDiv.textContent = `${imageCount} image${imageCount !== 1 ? 's' : ''} uploaded`;
+            } else {
+                settingsDiv.style.display = 'none';
+            }
+        }
 
         function parseCSV(text) {
             const lines = text.trim().split('\n');
@@ -322,7 +363,7 @@
                         if (student) {
                             const imageKey = getStudentKey(student);
                             if (studentImages[imageKey]) {
-                                html += `<img src="${studentImages[imageKey]}" class="student-image" alt="${student.firstName}">`;
+                                html += `<img src="${studentImages[imageKey]}" class="student-image" style="max-width:${imageMaxSize}px;max-height:${imageMaxSize}px;" alt="${student.firstName}">`;
                             }
                             html += `<div class="first-name">${student.firstName}</div>`;
                             html += `<div class="last-name">${student.lastName}</div>`;
@@ -537,6 +578,14 @@
             document.getElementById('class-header').textContent = e.target.value.trim();
         });
 
+        document.getElementById('image-size-slider').addEventListener('input', function(e) {
+            imageMaxSize = parseInt(e.target.value);
+            document.getElementById('image-size-value').textContent = imageMaxSize + 'px';
+            if (grid.length > 0) {
+                renderGrid();
+            }
+        });
+
         // Image upload functionality
         document.getElementById('upload-images-btn').addEventListener('click', function() {
             document.getElementById('image-file-input').click();
@@ -629,6 +678,9 @@
             } else {
                 csvInput.value = newStudentLines.join('\n');
             }
+
+            // Update image settings display
+            updateImageSettings();
 
             // Close modal
             document.getElementById('image-modal-overlay').style.display = 'none';
