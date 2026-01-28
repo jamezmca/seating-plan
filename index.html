@@ -34,6 +34,10 @@
         #class-header { font-size: 1.2em; font-weight: bold; text-align: center; margin-bottom: 5px; }
         #front-label { text-align: center; font-weight: bold; margin-bottom: 5px; border-bottom: 2px solid #333; padding-bottom: 5px; display: none; }
         #class-header:empty, #front-label:empty { display: none; }
+        #upload-images-row { display: none; }
+        @media (min-width: 769px) {
+            #upload-images-row { display: block; }
+        }
     </style>
 </head>
 <body>
@@ -69,12 +73,16 @@
             <label>Or upload CSV: <input type="file" id="csv-file" accept=".csv,.txt"></label>
         </div>
 
+        <div id="upload-images-row">
+            <label>Or upload images: <button id="upload-images-btn">Upload Class Images</button></label>
+        </div>
+
         <div>
             <button id="generate-btn">Generate Seating Plan</button>
         </div>
 
         <div>
-            <label>Blackout (e.g., 1,A,(B,2)): <input type="text" id="blackout-input" placeholder="1,A,(B,2)"></label>
+            <label>Blackout cells (e.g., 1,A,(B,2)): <input type="text" id="blackout-input" placeholder="1,A,(B,2)"></label>
             <button id="apply-blackout">Apply Blackouts</button>
             <button id="clear-blackout">Clear Blackouts</button>
         </div>
