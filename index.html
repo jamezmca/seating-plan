@@ -1,18 +1,49 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Seating Plan Creator</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; }
-        .controls { margin-bottom: 20px; }
-        .controls > * { margin-bottom: 10px; }
-        label { margin-right: 10px; }
-        input[type="number"] { width: 60px; }
-        textarea { width: 100%; max-width: 400px; height: 100px; }
-        #seating-grid { border-collapse: collapse; margin-top: 20px; }
-        #seating-grid th { padding: 5px 10px; background: #eee; border: 1px solid #ccc; }
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+        }
+
+        .controls {
+            margin-bottom: 20px;
+        }
+
+        .controls>* {
+            margin-bottom: 10px;
+        }
+
+        label {
+            margin-right: 10px;
+        }
+
+        input[type="number"] {
+            width: 60px;
+        }
+
+        textarea {
+            width: 100%;
+            max-width: 400px;
+            height: 100px;
+        }
+
+        #seating-grid {
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        #seating-grid th {
+            padding: 5px 10px;
+            background: #eee;
+            border: 1px solid #ccc;
+        }
+
         #seating-grid td {
             border: 1px solid #ccc;
             padding: 10px;
@@ -22,23 +53,91 @@
             cursor: pointer;
             vertical-align: middle;
         }
-        #seating-grid td:hover { background: #f0f0f0; }
-        #seating-grid td.selected { background: #cce5ff; border: 2px solid #007bff; }
-        #seating-grid td.blacked-out { background: #333; cursor: not-allowed; }
-        .first-name { font-size: 1.2em; font-weight: bold; }
-        .last-name { font-size: 0.8em; color: #666; }
-        .empty-seat { color: #999; font-style: italic; }
-        button { margin-right: 5px; margin-top: 5px; padding: 5px 10px; cursor: pointer; }
-        .row-header { background: #eee; font-weight: bold; }
-        #grid-container { display: inline-block; padding: 10px; background: #fff; }
-        #class-header { font-size: 1.2em; font-weight: bold; text-align: center; margin-bottom: 5px; }
-        #front-label { text-align: center; font-weight: bold; margin-bottom: 5px; border-bottom: 2px solid #333; padding-bottom: 5px; display: none; }
-        #class-header:empty, #front-label:empty { display: none; }
-        #upload-images-row { display: none; }
-        @media (min-width: 769px) {
-            #upload-images-row { display: block; }
+
+        #seating-grid td:hover {
+            background: #f0f0f0;
         }
-        .student-image { max-width: 40px; max-height: 40px; border-radius: 4px; margin-bottom: 4px; }
+
+        #seating-grid td.selected {
+            background: #cce5ff;
+            border: 2px solid #007bff;
+        }
+
+        #seating-grid td.blacked-out {
+            background: #333;
+            cursor: not-allowed;
+        }
+
+        .first-name {
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .last-name {
+            font-size: 0.8em;
+            color: #666;
+        }
+
+        .empty-seat {
+            color: #999;
+            font-style: italic;
+        }
+
+        button {
+            margin-right: 5px;
+            margin-top: 5px;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+
+        .row-header {
+            background: #eee;
+            font-weight: bold;
+        }
+
+        #grid-container {
+            display: inline-block;
+            padding: 10px;
+            background: #fff;
+        }
+
+        #class-header {
+            font-size: 1.2em;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 5px;
+        }
+
+        #front-label {
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 5px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 5px;
+            display: none;
+        }
+
+        #class-header:empty,
+        #front-label:empty {
+            display: none;
+        }
+
+        #upload-images-row {
+            display: none;
+        }
+
+        @media (min-width: 769px) {
+            #upload-images-row {
+                display: block;
+            }
+        }
+
+        .student-image {
+            max-width: 40px;
+            max-height: 40px;
+            border-radius: 4px;
+            margin-bottom: 4px;
+        }
 
         /* Modal styles */
         #image-modal-overlay {
@@ -52,6 +151,7 @@
             z-index: 1000;
             overflow-y: auto;
         }
+
         #image-modal {
             background: #fff;
             max-width: 800px;
@@ -60,7 +160,11 @@
             border-radius: 8px;
             position: relative;
         }
-        #image-modal h2 { margin-top: 0; }
+
+        #image-modal h2 {
+            margin-top: 0;
+        }
+
         .modal-recommendation {
             background: #e7f3ff;
             border: 1px solid #b3d7ff;
@@ -69,108 +173,134 @@
             margin-bottom: 15px;
             font-size: 0.9em;
         }
+
         .image-entries {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
             gap: 15px;
             margin-bottom: 20px;
         }
+
         .image-entry {
             border: 1px solid #ddd;
             padding: 10px;
             border-radius: 4px;
             text-align: center;
         }
+
         .image-entry img {
             max-width: 100px;
             max-height: 100px;
             border-radius: 4px;
             margin-bottom: 8px;
         }
+
         .image-entry input {
             width: 100%;
             box-sizing: border-box;
             padding: 5px;
             font-size: 0.9em;
         }
+
         .modal-buttons {
             text-align: right;
         }
+
         .modal-buttons button {
             padding: 8px 16px;
             font-size: 1em;
         }
+
         #modal-cancel-btn {
             background: #f0f0f0;
             border: 1px solid #ccc;
         }
+
         #modal-add-btn {
             background: #007bff;
             color: #fff;
             border: none;
         }
+
         #image-settings {
             display: none;
             margin-top: 8px;
             font-size: 0.9em;
         }
+
         #image-count {
             color: #28a745;
             font-weight: 500;
         }
+
         #image-size-control {
             margin-top: 6px;
         }
+
         #image-size-control input[type="range"] {
             width: 120px;
             vertical-align: middle;
         }
+
         #image-size-value {
             display: inline-block;
             width: 45px;
             text-align: right;
         }
+
         #instructions {
             color: #888;
             font-size: 0.9em;
             max-width: 700px;
             line-height: 1.6;
         }
+
         #instructions h2 {
             color: #666;
             font-size: 1.2em;
             margin-top: 20px;
             margin-bottom: 10px;
         }
+
         #instructions h3 {
             color: #777;
             font-size: 1em;
             margin-top: 15px;
             margin-bottom: 8px;
         }
+
         #instructions ul {
             margin: 5px 0 10px 20px;
             padding: 0;
         }
+
         #instructions li {
             margin-bottom: 5px;
         }
+
         #instructions code {
             background: #f0f0f0;
             padding: 2px 5px;
             border-radius: 3px;
             font-size: 0.95em;
         }
+
         #instructions hr {
             border: none;
             border-top: 1px solid #ddd;
             margin: 30px 0 20px;
         }
+
         @media print {
-            #instructions, #instructions-hr { display: none; }
+
+            #instructions,
+            #instructions-hr {
+                display: none;
+            }
         }
     </style>
 </head>
+
 <body>
     <h1>Seating Plan Creator</h1>
 
@@ -218,7 +348,8 @@
             <div id="image-settings">
                 <div id="image-count"></div>
                 <div id="image-size-control">
-                    <label>Max image size: <input type="range" id="image-size-slider" min="40" max="140" value="40"> <span id="image-size-value">40px</span></label>
+                    <label>Max image size: <input type="range" id="image-size-slider" min="40" max="140" value="40">
+                        <span id="image-size-value">40px</span></label>
                 </div>
             </div>
         </div>
@@ -228,7 +359,8 @@
         </div>
 
         <div>
-            <label>Blackout cells (e.g., 1,A,(B,2)): <input type="text" id="blackout-input" placeholder="1,A,(B,2)"></label>
+            <label>Blackout cells (e.g., 1,A,(B,2)): <input type="text" id="blackout-input"
+                    placeholder="1,A,(B,2)"></label>
             <button id="apply-blackout">Apply Blackouts</button>
             <button id="clear-blackout">Clear Blackouts</button>
         </div>
@@ -248,7 +380,8 @@
         <div id="image-modal">
             <h2>Add Students from Images</h2>
             <div class="modal-recommendation">
-                <strong>Tip:</strong> Use the format <em>LastName, FirstName</em> for each student (e.g., "Smith, John") to ensure proper sorting and display.
+                <strong>Tip:</strong> Use the format <em>LastName, FirstName</em> for each student (e.g., "Smith, John")
+                to ensure proper sorting and display.
             </div>
             <div id="image-entries" class="image-entries"></div>
             <div class="modal-buttons">
@@ -265,45 +398,68 @@
         <h3>Step 1: Add Your Students</h3>
         <p>You have three options for adding students:</p>
         <ul>
-            <li><strong>Type or paste names directly:</strong> In the text box, enter each student on a new line using the format <code>LastName, FirstName</code> (e.g., "Smith, John").</li>
-            <li><strong>Upload a CSV file:</strong> Click "Choose File" next to "Or upload CSV" to select a .csv or .txt file from your computer. The file should have one student per line in <code>LastName, FirstName</code> format.</li>
-            <li><strong>Upload student photos:</strong> Click "Upload Class Images" to select multiple student photos at once. A window will appear showing each image with a text field below it (pre-filled with the filename). Edit each name to match the <code>LastName, FirstName</code> format, then click "Add Students". The photos will appear in the seating plan.</li>
+            <li><strong>Type or paste names directly:</strong> In the text box, enter each student on a new line using
+                the format <code>LastName, FirstName</code> (e.g., "Smith, John").</li>
+            <li><strong>Upload a CSV file:</strong> Click "Choose File" next to "Or upload CSV" to select a .csv or .txt
+                file from your computer. The file should have one student per line in <code>LastName, FirstName</code>
+                format.</li>
+            <li><strong>Upload student photos:</strong> Click "Upload Class Images" to select multiple student photos at
+                once. A window will appear showing each image with a text field below it (pre-filled with the filename).
+                Edit each name to match the <code>LastName, FirstName</code> format, then click "Add Students". The
+                photos will appear in the seating plan. If you need to cut up a PDF or PNG of your class into photos of
+                individual students, please check out <a href="https://www.slicendice.smoljames.com"
+                    target="_blank">slice & dice</a>.</li>
         </ul>
 
         <h3>Step 2: Configure Your Grid</h3>
         <ul>
-            <li><strong>Class name:</strong> Enter your class name (e.g., "Math 101") at the top. This will appear as a header on your seating plan.</li>
-            <li><strong>Rows and Columns:</strong> Set how many rows and columns of desks you have. If you add more students than will fit, extra rows are added automatically.</li>
-            <li><strong>Sort by:</strong> Choose how to sort students - by first name, last name (A-Z or Z-A), or randomly.</li>
-            <li><strong>Allocate:</strong> Choose whether to fill seats from left to right (A→Z) or right to left (Z→A).</li>
+            <li><strong>Class name:</strong> Enter your class name (e.g., "Math 101") at the top. This will appear as a
+                header on your seating plan.</li>
+            <li><strong>Rows and Columns:</strong> Set how many rows and columns of desks you have. If you add more
+                students than will fit, extra rows are added automatically.</li>
+            <li><strong>Sort by:</strong> Choose how to sort students - by first name, last name (A-Z or Z-A), or
+                randomly.</li>
+            <li><strong>Allocate:</strong> Choose whether to fill seats from left to right (A→Z) or right to left (Z→A).
+            </li>
         </ul>
 
         <h3>Step 3: Generate the Plan</h3>
-        <p>Click the <strong>"Generate Seating Plan"</strong> button to create your seating arrangement. Students will be placed in order according to your sort and allocation settings.</p>
+        <p>Click the <strong>"Generate Seating Plan"</strong> button to create your seating arrangement. Students will
+            be placed in order according to your sort and allocation settings.</p>
 
         <h3>Customising Your Layout with Blackouts</h3>
         <p>Use blackouts to block off seats for walkways, teacher's desk areas, or reserved spaces:</p>
         <ul>
-            <li><strong>Block an entire row:</strong> Type the row number (e.g., <code>2</code> blocks out all of row 2).</li>
-            <li><strong>Block an entire column:</strong> Type the column letter (e.g., <code>C</code> blocks out all of column C).</li>
-            <li><strong>Block a single seat:</strong> Use brackets with the column letter and row number (e.g., <code>(B,3)</code> blocks only the seat at column B, row 3).</li>
-            <li><strong>Block multiple areas:</strong> Separate entries with commas (e.g., <code>1, C, (B,3)</code> blocks row 1, column C, and seat B3).</li>
+            <li><strong>Block an entire row:</strong> Type the row number (e.g., <code>2</code> blocks out all of row
+                2).</li>
+            <li><strong>Block an entire column:</strong> Type the column letter (e.g., <code>C</code> blocks out all of
+                column C).</li>
+            <li><strong>Block a single seat:</strong> Use brackets with the column letter and row number (e.g.,
+                <code>(B,3)</code> blocks only the seat at column B, row 3).</li>
+            <li><strong>Block multiple areas:</strong> Separate entries with commas (e.g., <code>1, C, (B,3)</code>
+                blocks row 1, column C, and seat B3).</li>
         </ul>
-        <p>Click <strong>"Apply Blackouts"</strong> to apply. Any students in blacked-out seats will be moved to available seats. Click <strong>"Clear Blackouts"</strong> to remove all blackouts and redistribute students.</p>
+        <p>Click <strong>"Apply Blackouts"</strong> to apply. Any students in blacked-out seats will be moved to
+            available seats. Click <strong>"Clear Blackouts"</strong> to remove all blackouts and redistribute students.
+        </p>
 
         <h3>Swapping Students</h3>
         <p>To move or swap students after generating the plan:</p>
         <ul>
             <li><strong>Click once</strong> on a student's seat to select them (the seat will highlight in blue).</li>
-            <li><strong>Click on another seat</strong> to move the selected student there. If that seat has a student, they will swap places. If it's empty, the student simply moves there.</li>
+            <li><strong>Click on another seat</strong> to move the selected student there. If that seat has a student,
+                they will swap places. If it's empty, the student simply moves there.</li>
         </ul>
         <p>You can swap as many times as you like to get the perfect arrangement.</p>
 
         <h3>Student Photos</h3>
-        <p>If you uploaded student photos, you can adjust their display size using the <strong>"Max image size"</strong> slider that appears after uploading. Drag it between 40px and 140px to make photos smaller or larger in the seating plan.</p>
+        <p>If you uploaded student photos, you can adjust their display size using the <strong>"Max image size"</strong>
+            slider that appears after uploading. Drag it between 40px and 140px to make photos smaller or larger in the
+            seating plan.</p>
 
         <h3>Exporting Your Seating Plan</h3>
-        <p>When you're happy with your arrangement, click <strong>"Export as PNG"</strong> to download an image of your seating plan. You can then print it or share it as needed.</p>
+        <p>When you're happy with your arrangement, click <strong>"Export as PNG"</strong> to download an image of your
+            seating plan. You can then print it or share it as needed.</p>
     </div>
 
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
@@ -346,7 +502,7 @@
 
         function sortStudents(students, method) {
             const sorted = [...students];
-            switch(method) {
+            switch (method) {
                 case 'first-asc':
                     sorted.sort((a, b) => a.firstName.localeCompare(b.firstName));
                     break;
@@ -660,22 +816,22 @@
         document.getElementById('clear-blackout').addEventListener('click', clearBlackouts);
         document.getElementById('export-btn').addEventListener('click', exportAsPNG);
 
-        document.getElementById('csv-file').addEventListener('change', function(e) {
+        document.getElementById('csv-file').addEventListener('change', function (e) {
             const file = e.target.files[0];
             if (file) {
                 const reader = new FileReader();
-                reader.onload = function(e) {
+                reader.onload = function (e) {
                     document.getElementById('csv-input').value = e.target.result;
                 };
                 reader.readAsText(file);
             }
         });
 
-        document.getElementById('class-code').addEventListener('input', function(e) {
+        document.getElementById('class-code').addEventListener('input', function (e) {
             document.getElementById('class-header').textContent = e.target.value.trim();
         });
 
-        document.getElementById('image-size-slider').addEventListener('input', function(e) {
+        document.getElementById('image-size-slider').addEventListener('input', function (e) {
             imageMaxSize = parseInt(e.target.value);
             document.getElementById('image-size-value').textContent = imageMaxSize + 'px';
             if (grid.length > 0) {
@@ -684,11 +840,11 @@
         });
 
         // Image upload functionality
-        document.getElementById('upload-images-btn').addEventListener('click', function() {
+        document.getElementById('upload-images-btn').addEventListener('click', function () {
             document.getElementById('image-file-input').click();
         });
 
-        document.getElementById('image-file-input').addEventListener('change', function(e) {
+        document.getElementById('image-file-input').addEventListener('change', function (e) {
             const files = Array.from(e.target.files);
             if (files.length === 0) return;
 
@@ -699,7 +855,7 @@
             let loadedCount = 0;
             files.forEach((file, index) => {
                 const reader = new FileReader();
-                reader.onload = function(event) {
+                reader.onload = function (event) {
                     const imageData = event.target.result;
                     // Get filename without extension
                     const fileName = file.name.replace(/\.[^/.]+$/, '');
@@ -727,19 +883,19 @@
             e.target.value = '';
         });
 
-        document.getElementById('modal-cancel-btn').addEventListener('click', function() {
+        document.getElementById('modal-cancel-btn').addEventListener('click', function () {
             document.getElementById('image-modal-overlay').style.display = 'none';
             pendingImages = [];
         });
 
-        document.getElementById('image-modal-overlay').addEventListener('click', function(e) {
+        document.getElementById('image-modal-overlay').addEventListener('click', function (e) {
             if (e.target === this) {
                 this.style.display = 'none';
                 pendingImages = [];
             }
         });
 
-        document.getElementById('modal-add-btn').addEventListener('click', function() {
+        document.getElementById('modal-add-btn').addEventListener('click', function () {
             const inputs = document.querySelectorAll('#image-entries input');
             const newStudentLines = [];
 
@@ -785,4 +941,5 @@
         });
     </script>
 </body>
+
 </html>
