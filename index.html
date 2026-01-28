@@ -714,51 +714,52 @@
                 });
             }
 
-            // Collect displaced students from newly blacked out cells
-            const displacedStudents = [];
-            newBlackouts.forEach(cellKey => {
-                if (!blackedOutCells.has(cellKey)) {
-                    const [r, c] = cellKey.split(',').map(Number);
+            // Collect ALL students from the grid
+            const allStudents = [];
+            for (let r = 0; r < grid.length; r++) {
+                for (let c = 0; c < cols; c++) {
                     if (grid[r][c]) {
-                        displacedStudents.push(grid[r][c]);
+                        allStudents.push(grid[r][c]);
                         grid[r][c] = null;
                     }
                 }
-            });
+            }
 
             // Add new blackouts to the set
             newBlackouts.forEach(cell => blackedOutCells.add(cell));
 
-            // Find empty seats for displaced students
-            for (const student of displacedStudents) {
-                let placed = false;
-                for (let r = 0; r < grid.length && !placed; r++) {
-                    for (let c = 0; c < cols && !placed; c++) {
-                        const cellKey = `${r},${c}`;
-                        if (!blackedOutCells.has(cellKey) && grid[r][c] === null) {
-                            grid[r][c] = student;
-                            placed = true;
-                        }
-                    }
-                }
+            // Sort all students according to current sort method
+            const sortMethod = document.getElementById('sort-method').value;
+            const sortedStudents = sortStudents(allStudents, sortMethod);
 
-                // If no empty seat found, add a new row
-                if (!placed) {
-                    const newRow = [];
-                    for (let c = 0; c < cols; c++) {
-                        newRow.push(null);
+            // Re-place all students in sorted order
+            const allocateDir = document.getElementById('allocate-direction').value;
+            let studentIndex = 0;
+            for (let r = 0; r < grid.length && studentIndex < sortedStudents.length; r++) {
+                for (let i = 0; i < cols && studentIndex < sortedStudents.length; i++) {
+                    const c = allocateDir === 'rtl' ? (cols - 1 - i) : i;
+                    const cellKey = `${r},${c}`;
+                    if (!blackedOutCells.has(cellKey)) {
+                        grid[r][c] = sortedStudents[studentIndex++];
                     }
-                    grid.push(newRow);
-                    // Place student in first non-blacked-out cell of new row
-                    for (let c = 0; c < cols; c++) {
-                        const cellKey = `${grid.length - 1},${c}`;
-                        if (!blackedOutCells.has(cellKey)) {
-                            grid[grid.length - 1][c] = student;
-                            break;
-                        }
-                    }
-                    document.getElementById('rows').value = grid.length;
                 }
+            }
+
+            // If students remain, add new rows
+            while (studentIndex < sortedStudents.length) {
+                const newRow = [];
+                for (let c = 0; c < cols; c++) {
+                    newRow.push(null);
+                }
+                grid.push(newRow);
+                for (let i = 0; i < cols && studentIndex < sortedStudents.length; i++) {
+                    const c = allocateDir === 'rtl' ? (cols - 1 - i) : i;
+                    const cellKey = `${grid.length - 1},${c}`;
+                    if (!blackedOutCells.has(cellKey)) {
+                        grid[grid.length - 1][c] = sortedStudents[studentIndex++];
+                    }
+                }
+                document.getElementById('rows').value = grid.length;
             }
 
             selectedCell = null;
@@ -781,9 +782,12 @@
             }
 
             // Redistribute students row by row
+            const allocateDir = document.getElementById('allocate-direction').value;
+            const cols = grid[0]?.length || 0;
             let studentIndex = 0;
             for (let r = 0; r < grid.length && studentIndex < allStudents.length; r++) {
-                for (let c = 0; c < grid[r].length && studentIndex < allStudents.length; c++) {
+                for (let i = 0; i < cols && studentIndex < allStudents.length; i++) {
+                    const c = allocateDir === 'rtl' ? (cols - 1 - i) : i;
                     grid[r][c] = allStudents[studentIndex++];
                 }
             }
