@@ -38,6 +38,77 @@
         @media (min-width: 769px) {
             #upload-images-row { display: block; }
         }
+        .student-image { max-width: 40px; max-height: 40px; border-radius: 4px; margin-bottom: 4px; }
+
+        /* Modal styles */
+        #image-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+        #image-modal {
+            background: #fff;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            border-radius: 8px;
+            position: relative;
+        }
+        #image-modal h2 { margin-top: 0; }
+        .modal-recommendation {
+            background: #e7f3ff;
+            border: 1px solid #b3d7ff;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+        }
+        .image-entries {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .image-entry {
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .image-entry img {
+            max-width: 100px;
+            max-height: 100px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+        .image-entry input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 5px;
+            font-size: 0.9em;
+        }
+        .modal-buttons {
+            text-align: right;
+        }
+        .modal-buttons button {
+            padding: 8px 16px;
+            font-size: 1em;
+        }
+        #modal-cancel-btn {
+            background: #f0f0f0;
+            border: 1px solid #ccc;
+        }
+        #modal-add-btn {
+            background: #007bff;
+            color: #fff;
+            border: none;
+        }
     </style>
 </head>
 <body>
@@ -75,6 +146,7 @@
 
         <div id="upload-images-row">
             <label>Or upload images: <button id="upload-images-btn">Upload Class Images</button></label>
+            <input type="file" id="image-file-input" accept="image/*" multiple style="display: none;">
         </div>
 
         <div>
@@ -98,12 +170,28 @@
         <table id="seating-grid"></table>
     </div>
 
+    <div id="image-modal-overlay">
+        <div id="image-modal">
+            <h2>Add Students from Images</h2>
+            <div class="modal-recommendation">
+                <strong>Tip:</strong> Use the format <em>LastName, FirstName</em> for each student (e.g., "Smith, John") to ensure proper sorting and display.
+            </div>
+            <div id="image-entries" class="image-entries"></div>
+            <div class="modal-buttons">
+                <button id="modal-cancel-btn">Cancel</button>
+                <button id="modal-add-btn">Add Students</button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <script>
         let students = [];
         let grid = [];
         let selectedCell = null;
         let blackedOutCells = new Set();
+        let studentImages = {}; // Map of "lastName,firstName" -> imageDataUrl
+        let pendingImages = []; // Temporarily holds images during modal editing
 
         function parseCSV(text) {
             const lines = text.trim().split('\n');
@@ -114,6 +202,10 @@
                 }
                 return null;
             }).filter(s => s !== null);
+        }
+
+        function getStudentKey(student) {
+            return `${student.lastName.toLowerCase()},${student.firstName.toLowerCase()}`;
         }
 
         function sortStudents(students, method) {
@@ -228,6 +320,10 @@
                     if (!isBlackedOut) {
                         const student = grid[r][c];
                         if (student) {
+                            const imageKey = getStudentKey(student);
+                            if (studentImages[imageKey]) {
+                                html += `<img src="${studentImages[imageKey]}" class="student-image" alt="${student.firstName}">`;
+                            }
                             html += `<div class="first-name">${student.firstName}</div>`;
                             html += `<div class="last-name">${student.lastName}</div>`;
                         } else {
@@ -439,6 +535,104 @@
 
         document.getElementById('class-code').addEventListener('input', function(e) {
             document.getElementById('class-header').textContent = e.target.value.trim();
+        });
+
+        // Image upload functionality
+        document.getElementById('upload-images-btn').addEventListener('click', function() {
+            document.getElementById('image-file-input').click();
+        });
+
+        document.getElementById('image-file-input').addEventListener('change', function(e) {
+            const files = Array.from(e.target.files);
+            if (files.length === 0) return;
+
+            pendingImages = [];
+            const entriesContainer = document.getElementById('image-entries');
+            entriesContainer.innerHTML = '';
+
+            let loadedCount = 0;
+            files.forEach((file, index) => {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const imageData = event.target.result;
+                    // Get filename without extension
+                    const fileName = file.name.replace(/\.[^/.]+$/, '');
+
+                    pendingImages[index] = { imageData, fileName };
+
+                    const entryDiv = document.createElement('div');
+                    entryDiv.className = 'image-entry';
+                    entryDiv.innerHTML = `
+                        <img src="${imageData}" alt="${fileName}">
+                        <input type="text" data-index="${index}" value="${fileName}" placeholder="LastName, FirstName">
+                    `;
+                    entriesContainer.appendChild(entryDiv);
+
+                    loadedCount++;
+                    if (loadedCount === files.length) {
+                        // All images loaded, show modal
+                        document.getElementById('image-modal-overlay').style.display = 'block';
+                    }
+                };
+                reader.readAsDataURL(file);
+            });
+
+            // Reset input so same files can be selected again
+            e.target.value = '';
+        });
+
+        document.getElementById('modal-cancel-btn').addEventListener('click', function() {
+            document.getElementById('image-modal-overlay').style.display = 'none';
+            pendingImages = [];
+        });
+
+        document.getElementById('image-modal-overlay').addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.style.display = 'none';
+                pendingImages = [];
+            }
+        });
+
+        document.getElementById('modal-add-btn').addEventListener('click', function() {
+            const inputs = document.querySelectorAll('#image-entries input');
+            const newStudentLines = [];
+
+            inputs.forEach(input => {
+                const index = parseInt(input.dataset.index);
+                const value = input.value.trim();
+                if (value && pendingImages[index]) {
+                    // Parse the name
+                    const parts = value.split(',').map(p => p.trim());
+                    let lastName, firstName;
+                    if (parts.length >= 2) {
+                        lastName = parts[0];
+                        firstName = parts[1];
+                    } else {
+                        // If no comma, treat whole thing as first name
+                        lastName = '';
+                        firstName = value;
+                    }
+
+                    // Store the image
+                    const key = `${lastName.toLowerCase()},${firstName.toLowerCase()}`;
+                    studentImages[key] = pendingImages[index].imageData;
+
+                    // Add to CSV lines
+                    newStudentLines.push(`${lastName}, ${firstName}`);
+                }
+            });
+
+            // Append to existing CSV input
+            const csvInput = document.getElementById('csv-input');
+            if (csvInput.value.trim()) {
+                csvInput.value += '\n' + newStudentLines.join('\n');
+            } else {
+                csvInput.value = newStudentLines.join('\n');
+            }
+
+            // Close modal
+            document.getElementById('image-modal-overlay').style.display = 'none';
+            pendingImages = [];
         });
     </script>
 </body>
