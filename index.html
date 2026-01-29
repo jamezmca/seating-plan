@@ -299,6 +299,47 @@
                 display: none;
             }
         }
+
+        .toggle-row {
+            margin-top: 10px;
+        }
+
+        .toggle-row label {
+            display: inline-flex;
+            align-items: center;
+            margin-right: 15px;
+            cursor: pointer;
+        }
+
+        .toggle-row input[type="checkbox"] {
+            margin-right: 5px;
+        }
+
+        .toggle-row label.disabled {
+            color: #aaa;
+            cursor: not-allowed;
+        }
+
+        .modal-toggle {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+
+        .modal-toggle label {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+
+        .modal-toggle input[type="checkbox"] {
+            margin-right: 8px;
+        }
+
+        .image-entry.no-input input {
+            display: none;
+        }
     </style>
 </head>
 
@@ -366,6 +407,11 @@
             <button id="clear-blackout">Clear Blackouts</button>
         </div>
 
+        <div class="toggle-row" id="display-toggles">
+            <label id="show-images-label"><input type="checkbox" id="show-images-toggle" checked disabled> Show images</label>
+            <label id="show-names-label"><input type="checkbox" id="show-names-toggle" checked> Show names</label>
+        </div>
+
         <div>
             <button id="export-btn">Export as PNG</button>
         </div>
@@ -383,6 +429,9 @@
             <div class="modal-recommendation">
                 <strong>Tip:</strong> Use the format <em>LastName, FirstName</em> for each student (e.g., "Smith, John")
                 to ensure proper sorting and display.
+            </div>
+            <div class="modal-toggle">
+                <label><input type="checkbox" id="hide-names-toggle"> Hide student names (images only, no name labels)</label>
             </div>
             <div id="image-entries" class="image-entries"></div>
             <div class="modal-buttons">
@@ -472,6 +521,7 @@
         let studentImages = {}; // Map of "lastName,firstName" -> imageDataUrl
         let pendingImages = []; // Temporarily holds images during modal editing
         let imageMaxSize = 40; // Default max image size in px
+        let namesHiddenOnUpload = false; // Track if user chose to hide names during upload
 
         function updateImageSettings() {
             const imageCount = Object.keys(studentImages).length;
@@ -483,6 +533,35 @@
                 countDiv.textContent = `${imageCount} image${imageCount !== 1 ? 's' : ''} uploaded`;
             } else {
                 settingsDiv.style.display = 'none';
+            }
+
+            updateDisplayToggles();
+        }
+
+        function updateDisplayToggles() {
+            const imageCount = Object.keys(studentImages).length;
+            const showImagesToggle = document.getElementById('show-images-toggle');
+            const showNamesToggle = document.getElementById('show-names-toggle');
+            const showImagesLabel = document.getElementById('show-images-label');
+            const showNamesLabel = document.getElementById('show-names-label');
+
+            // Enable/disable show images toggle based on whether images exist
+            if (imageCount > 0) {
+                showImagesToggle.disabled = false;
+                showImagesLabel.classList.remove('disabled');
+            } else {
+                showImagesToggle.disabled = true;
+                showImagesToggle.checked = false;
+                showImagesLabel.classList.add('disabled');
+            }
+
+            // Show names toggle - disable if names were hidden during upload
+            if (namesHiddenOnUpload && imageCount > 0) {
+                showNamesToggle.disabled = true;
+                showNamesLabel.classList.add('disabled');
+            } else {
+                showNamesToggle.disabled = false;
+                showNamesLabel.classList.remove('disabled');
             }
         }
 
@@ -578,6 +657,16 @@
 
             blackedOutCells.clear();
             selectedCell = null;
+
+            // Update display toggles based on current state
+            updateDisplayToggles();
+
+            // Enable show-images if we have images
+            const imageCount = Object.keys(studentImages).length;
+            if (imageCount > 0) {
+                document.getElementById('show-images-toggle').checked = true;
+            }
+
             renderGrid();
         }
 
@@ -615,12 +704,16 @@
                     if (!isBlackedOut) {
                         const student = grid[r][c];
                         if (student) {
+                            const showImages = document.getElementById('show-images-toggle').checked;
+                            const showNames = document.getElementById('show-names-toggle').checked;
                             const imageKey = getStudentKey(student);
-                            if (studentImages[imageKey]) {
+                            if (showImages && studentImages[imageKey]) {
                                 html += `<img src="${studentImages[imageKey]}" class="student-image" style="max-width:${imageMaxSize}px;max-height:${imageMaxSize}px;" alt="${student.firstName}">`;
                             }
-                            html += `<div class="first-name">${student.firstName}</div>`;
-                            html += `<div class="last-name">${student.lastName}</div>`;
+                            if (showNames) {
+                                html += `<div class="first-name">${student.firstName}</div>`;
+                                html += `<div class="last-name">${student.lastName}</div>`;
+                            }
                         } else {
                             html += `<div class="empty-seat">Empty</div>`;
                         }
@@ -844,6 +937,32 @@
             }
         });
 
+        // Display toggles
+        document.getElementById('show-images-toggle').addEventListener('change', function () {
+            if (grid.length > 0) {
+                renderGrid();
+            }
+        });
+
+        document.getElementById('show-names-toggle').addEventListener('change', function () {
+            if (grid.length > 0) {
+                renderGrid();
+            }
+        });
+
+        // Modal hide names toggle
+        document.getElementById('hide-names-toggle').addEventListener('change', function () {
+            const hideNames = this.checked;
+            const entries = document.querySelectorAll('.image-entry');
+            entries.forEach(entry => {
+                if (hideNames) {
+                    entry.classList.add('no-input');
+                } else {
+                    entry.classList.remove('no-input');
+                }
+            });
+        });
+
         // Image upload functionality
         document.getElementById('upload-images-btn').addEventListener('click', function () {
             document.getElementById('image-file-input').click();
@@ -852,6 +971,9 @@
         document.getElementById('image-file-input').addEventListener('change', function (e) {
             const files = Array.from(e.target.files);
             if (files.length === 0) return;
+
+            // Reset the hide names toggle
+            document.getElementById('hide-names-toggle').checked = false;
 
             pendingImages = [];
             const entriesContainer = document.getElementById('image-entries');
@@ -890,44 +1012,74 @@
 
         document.getElementById('modal-cancel-btn').addEventListener('click', function () {
             document.getElementById('image-modal-overlay').style.display = 'none';
+            document.getElementById('hide-names-toggle').checked = false;
             pendingImages = [];
         });
 
         document.getElementById('image-modal-overlay').addEventListener('click', function (e) {
             if (e.target === this) {
                 this.style.display = 'none';
+                document.getElementById('hide-names-toggle').checked = false;
                 pendingImages = [];
             }
         });
 
         document.getElementById('modal-add-btn').addEventListener('click', function () {
-            const inputs = document.querySelectorAll('#image-entries input');
+            const hideNames = document.getElementById('hide-names-toggle').checked;
             const newStudentLines = [];
 
-            inputs.forEach(input => {
-                const index = parseInt(input.dataset.index);
-                const value = input.value.trim();
-                if (value && pendingImages[index]) {
-                    // Parse the name
-                    const parts = value.split(',').map(p => p.trim());
-                    let lastName, firstName;
-                    if (parts.length >= 2) {
-                        lastName = parts[0];
-                        firstName = parts[1];
-                    } else {
-                        // If no comma, treat whole thing as first name
-                        lastName = '';
-                        firstName = value;
+            if (hideNames) {
+                // Use filenames directly, names will be hidden in display
+                namesHiddenOnUpload = true;
+                pendingImages.forEach((img, index) => {
+                    if (img) {
+                        const fileName = img.fileName;
+                        // Parse filename as name (try to split on comma if present)
+                        const parts = fileName.split(',').map(p => p.trim());
+                        let lastName, firstName;
+                        if (parts.length >= 2) {
+                            lastName = parts[0];
+                            firstName = parts[1];
+                        } else {
+                            lastName = '';
+                            firstName = fileName;
+                        }
+
+                        const key = `${lastName.toLowerCase()},${firstName.toLowerCase()}`;
+                        studentImages[key] = img.imageData;
+                        newStudentLines.push(`${lastName}, ${firstName}`);
                     }
+                });
 
-                    // Store the image
-                    const key = `${lastName.toLowerCase()},${firstName.toLowerCase()}`;
-                    studentImages[key] = pendingImages[index].imageData;
+                // Disable and uncheck show names toggle
+                document.getElementById('show-names-toggle').checked = false;
+            } else {
+                const inputs = document.querySelectorAll('#image-entries input[data-index]');
+                inputs.forEach(input => {
+                    const index = parseInt(input.dataset.index);
+                    const value = input.value.trim();
+                    if (value && pendingImages[index]) {
+                        // Parse the name
+                        const parts = value.split(',').map(p => p.trim());
+                        let lastName, firstName;
+                        if (parts.length >= 2) {
+                            lastName = parts[0];
+                            firstName = parts[1];
+                        } else {
+                            // If no comma, treat whole thing as first name
+                            lastName = '';
+                            firstName = value;
+                        }
 
-                    // Add to CSV lines
-                    newStudentLines.push(`${lastName}, ${firstName}`);
-                }
-            });
+                        // Store the image
+                        const key = `${lastName.toLowerCase()},${firstName.toLowerCase()}`;
+                        studentImages[key] = pendingImages[index].imageData;
+
+                        // Add to CSV lines
+                        newStudentLines.push(`${lastName}, ${firstName}`);
+                    }
+                });
+            }
 
             // Append to existing CSV input
             const csvInput = document.getElementById('csv-input');
@@ -940,8 +1092,9 @@
             // Update image settings display
             updateImageSettings();
 
-            // Close modal
+            // Close modal and reset toggle
             document.getElementById('image-modal-overlay').style.display = 'none';
+            document.getElementById('hide-names-toggle').checked = false;
             pendingImages = [];
         });
     </script>
