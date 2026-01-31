@@ -91,6 +91,36 @@
             cursor: pointer;
         }
 
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .export-hint {
+            font-size: 0.8em;
+            color: #999;
+            font-style: italic;
+            margin-top: 4px;
+        }
+
+        .generate-row {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 4px;
+        }
+
+        .generate-cta {
+            font-size: 1.17em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        #generate-btn {
+            font-size: 1.05em;
+            font-weight: bold;
+        }
+
         .row-header {
             background: #eee;
             font-weight: bold;
@@ -397,7 +427,13 @@
         </div>
 
         <div>
-            <button id="generate-btn">Generate Seating Plan</button>
+            <label>Or upload SitYoAssDown datafile: <button id="upload-datafile-btn">Upload SitYoAssDown Datafile</button></label>
+            <input type="file" id="datafile-input" accept=".json" style="display: none;">
+        </div>
+
+        <div class="generate-row">
+            <span class="generate-cta">&#x2B07;&#x2B07;&#x2B07; GENERATE YOUR SEATING PLAN &#x2B07;&#x2B07;&#x2B07;</span>
+            <button id="generate-btn">Generate Seating Plan ✅</button>
         </div>
 
         <div>
@@ -413,7 +449,9 @@
         </div>
 
         <div>
-            <button id="export-btn">Export as PNG</button>
+            <button id="export-btn" disabled>Export as PNG</button>
+            <button id="export-data-btn" disabled>Export Data</button>
+            <div id="export-hint" class="export-hint">Generate a seating plan first to enable exports</div>
         </div>
     </div>
 
@@ -459,6 +497,10 @@
                 photos will appear in the seating plan. If you need to cut up a PDF or PNG of your class into photos of
                 individual students, please check out <a href="https://www.slicendice.smoljames.com"
                     target="_blank">slice & dice</a>.</li>
+            <li><strong>Upload a SitYoAssDown datafile:</strong> If you previously exported your seating plan data,
+                click "Upload SitYoAssDown Datafile" to load a <code>.json</code> datafile. This will restore your
+                entire seating plan including student positions, blackouts, and any uploaded photos. The plan will
+                render automatically without needing to click "Generate Seating Plan".</li>
         </ul>
 
         <h3>Step 2: Configure Your Grid</h3>
@@ -508,8 +550,14 @@
             seating plan.</p>
 
         <h3>Exporting Your Seating Plan</h3>
-        <p>When you're happy with your arrangement, click <strong>"Export as PNG"</strong> to download an image of your
-            seating plan. You can then print it or share it as needed.</p>
+        <p>When you're happy with your arrangement, you have two export options:</p>
+        <ul>
+            <li><strong>Export as PNG:</strong> Downloads an image of your seating plan that you can print or share.</li>
+            <li><strong>Export Data:</strong> Downloads a <code>.json</code> datafile containing your full seating plan
+                data (student positions, blackouts, photos, etc.). You can reload this file later using the
+                "Upload SitYoAssDown Datafile" button to pick up right where you left off.</li>
+        </ul>
+        <p>Both export buttons are disabled until you generate or load a seating plan.</p>
     </div>
 
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
@@ -522,6 +570,13 @@
         let pendingImages = []; // Temporarily holds images during modal editing
         let imageMaxSize = 40; // Default max image size in px
         let namesHiddenOnUpload = false; // Track if user chose to hide names during upload
+
+        function updateExportButtons() {
+            const hasGrid = grid.length > 0 && document.getElementById('seating-grid').innerHTML !== '';
+            document.getElementById('export-btn').disabled = !hasGrid;
+            document.getElementById('export-data-btn').disabled = !hasGrid;
+            document.getElementById('export-hint').style.display = hasGrid ? 'none' : 'block';
+        }
 
         function updateImageSettings() {
             const imageCount = Object.keys(studentImages).length;
@@ -730,6 +785,8 @@
             table.querySelectorAll('td:not(.row-header)').forEach(cell => {
                 cell.addEventListener('click', handleCellClick);
             });
+
+            updateExportButtons();
         }
 
         function handleCellClick(e) {
@@ -908,11 +965,144 @@
             }
         }
 
+        function exportData() {
+            if (grid.length === 0) {
+                alert('Generate a seating plan first!');
+                return;
+            }
+
+            const data = {
+                _format: 'sityoassdown-v1',
+                classCode: document.getElementById('class-code').value,
+                grid: grid,
+                blackedOutCells: Array.from(blackedOutCells),
+                studentImages: studentImages,
+                imageMaxSize: imageMaxSize,
+                namesHiddenOnUpload: namesHiddenOnUpload
+            };
+
+            const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+            const link = document.createElement('a');
+            link.download = 'seating-plan.json';
+            link.href = URL.createObjectURL(blob);
+            link.click();
+            URL.revokeObjectURL(link.href);
+        }
+
+        function importData(file) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                let data;
+                try {
+                    data = JSON.parse(e.target.result);
+                } catch (err) {
+                    alert('Invalid file: not valid JSON.');
+                    return;
+                }
+
+                if (!data || data._format !== 'sityoassdown-v1') {
+                    alert('Invalid file format. Please upload a valid SitYoAssDown datafile.');
+                    return;
+                }
+
+                if (!Array.isArray(data.grid) || data.grid.length === 0 || !Array.isArray(data.blackedOutCells)) {
+                    alert('Invalid file: missing or corrupt seating plan data.');
+                    return;
+                }
+
+                // Validate grid structure
+                for (let r = 0; r < data.grid.length; r++) {
+                    if (!Array.isArray(data.grid[r])) {
+                        alert('Invalid file: grid data is corrupt.');
+                        return;
+                    }
+                    for (let c = 0; c < data.grid[r].length; c++) {
+                        const cell = data.grid[r][c];
+                        if (cell !== null && (typeof cell !== 'object' || typeof cell.firstName !== 'string' || typeof cell.lastName !== 'string')) {
+                            alert('Invalid file: student data is corrupt.');
+                            return;
+                        }
+                    }
+                }
+
+                // Restore state
+                grid = data.grid;
+                blackedOutCells = new Set(data.blackedOutCells);
+                studentImages = data.studentImages || {};
+                imageMaxSize = data.imageMaxSize || 40;
+                namesHiddenOnUpload = data.namesHiddenOnUpload || false;
+
+                // Populate input fields
+                document.getElementById('class-code').value = data.classCode || '';
+                document.getElementById('class-header').textContent = data.classCode || '';
+
+                const rows = grid.length;
+                const cols = grid[0]?.length || 0;
+                document.getElementById('rows').value = rows;
+                document.getElementById('cols').value = cols;
+
+                // Reconstruct CSV from grid
+                const csvLines = [];
+                for (let r = 0; r < grid.length; r++) {
+                    for (let c = 0; c < (grid[r]?.length || 0); c++) {
+                        if (grid[r][c]) {
+                            csvLines.push(`${grid[r][c].lastName}, ${grid[r][c].firstName}`);
+                        }
+                    }
+                }
+                document.getElementById('csv-input').value = csvLines.join('\n');
+
+                // Reconstruct blackout input from cells
+                const blackoutParts = Array.from(blackedOutCells).map(cell => {
+                    const [r, c] = cell.split(',').map(Number);
+                    return `(${getColumnLabel(c)},${r + 1})`;
+                });
+                document.getElementById('blackout-input').value = blackoutParts.join(',');
+
+                // Update image settings
+                document.getElementById('image-size-slider').value = imageMaxSize;
+                document.getElementById('image-size-value').textContent = imageMaxSize + 'px';
+                updateImageSettings();
+
+                // Set display toggles
+                if (Object.keys(studentImages).length > 0) {
+                    document.getElementById('show-images-toggle').checked = true;
+                }
+                if (namesHiddenOnUpload) {
+                    document.getElementById('show-names-toggle').checked = false;
+                } else {
+                    document.getElementById('show-names-toggle').checked = true;
+                }
+
+                selectedCell = null;
+                renderGrid();
+            };
+            reader.readAsText(file);
+        }
+
         // Event listeners
         document.getElementById('generate-btn').addEventListener('click', generateGrid);
         document.getElementById('apply-blackout').addEventListener('click', applyBlackouts);
         document.getElementById('clear-blackout').addEventListener('click', clearBlackouts);
         document.getElementById('export-btn').addEventListener('click', exportAsPNG);
+        document.getElementById('export-data-btn').addEventListener('click', exportData);
+
+        document.getElementById('upload-datafile-btn').addEventListener('click', function () {
+            document.getElementById('datafile-input').click();
+        });
+
+        document.getElementById('datafile-input').addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            if (file) {
+                if (!file.name.endsWith('.json')) {
+                    alert('Please upload a .json file.');
+                    e.target.value = '';
+                    return;
+                }
+                importData(file);
+                e.target.value = '';
+            }
+        });
 
         document.getElementById('csv-file').addEventListener('change', function (e) {
             const file = e.target.files[0];
