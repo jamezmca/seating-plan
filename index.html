@@ -4,7 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Free classroom seating plan generator for teachers. Create custom seating charts with student photos, custom layouts, alphabetical sorting, and easy drag-and-drop swapping. Supports names, and images. Export as PNG for printing.">
+    <meta name="description"
+        content="Free classroom seating plan generator for teachers. Create custom seating charts with student photos, custom layouts, alphabetical sorting, and easy drag-and-drop swapping. Supports names, and images. Export as PNG for printing.">
     <title>Sit Yo Ass Down - #1 Customizable Seating Plan Generator (Supports Images)</title>
     <style>
         body {
@@ -133,19 +134,28 @@
         }
 
         #class-header {
-            font-size: 1.2em;
+            font-size: 1.8em;
             font-weight: bold;
             text-align: center;
-            margin-bottom: 5px;
+            margin-bottom: 8px;
         }
 
         #front-label {
             text-align: center;
             font-weight: bold;
+            display: none;
+        }
+
+        #front-label.front-top {
             margin-bottom: 5px;
             border-bottom: 2px solid #333;
             padding-bottom: 5px;
-            display: none;
+        }
+
+        #front-label.front-bottom {
+            margin-top: 5px;
+            border-top: 2px solid #333;
+            padding-top: 5px;
         }
 
         #class-header:empty,
@@ -406,6 +416,14 @@
         </div>
 
         <div>
+            <label>Front of Class:</label>
+            <select id="front-position">
+                <option value="top">Top</option>
+                <option value="bottom">Bottom</option>
+            </select>
+        </div>
+
+        <div>
             <label>CSV (Last, First per line):</label><br>
             <textarea id="csv-input" placeholder="Smith, John&#10;Doe, Jane&#10;Johnson, Bob"></textarea>
         </div>
@@ -427,13 +445,13 @@
         </div>
 
         <div>
-            <label>Or upload SitYoAssDown datafile: <button id="upload-datafile-btn">Upload SitYoAssDown Datafile</button></label>
+            <label>Or upload SitYoAssDown datafile: <button id="upload-datafile-btn">Upload SitYoAssDown
+                    Datafile</button></label>
             <input type="file" id="datafile-input" accept=".json" style="display: none;">
         </div>
 
         <div class="generate-row">
-            <span class="generate-cta">&#x2B07;&#x2B07;&#x2B07; GENERATE YOUR SEATING PLAN &#x2B07;&#x2B07;&#x2B07;</span>
-            <button id="generate-btn">Generate Seating Plan ✅</button>
+            <button id="generate-btn"> &#x2B07;&#x2B07;&#x2B07; Generate Seating Plan &#x2B07;&#x2B07;&#x2B07;</button>
         </div>
 
         <div>
@@ -444,7 +462,8 @@
         </div>
 
         <div class="toggle-row" id="display-toggles">
-            <label id="show-images-label"><input type="checkbox" id="show-images-toggle" checked disabled> Show images</label>
+            <label id="show-images-label"><input type="checkbox" id="show-images-toggle" checked disabled> Show
+                images</label>
             <label id="show-names-label"><input type="checkbox" id="show-names-toggle" checked> Show names</label>
         </div>
 
@@ -469,7 +488,8 @@
                 to ensure proper sorting and display.
             </div>
             <div class="modal-toggle">
-                <label><input type="checkbox" id="hide-names-toggle"> Hide student names (images only, no name labels)</label>
+                <label><input type="checkbox" id="hide-names-toggle"> Hide student names (images only, no name
+                    labels)</label>
             </div>
             <div id="image-entries" class="image-entries"></div>
             <div class="modal-buttons">
@@ -527,7 +547,8 @@
             <li><strong>Block an entire column:</strong> Type the column letter (e.g., <code>C</code> blocks out all of
                 column C).</li>
             <li><strong>Block a single seat:</strong> Use brackets with the column letter and row number (e.g.,
-                <code>(B,3)</code> blocks only the seat at column B, row 3).</li>
+                <code>(B,3)</code> blocks only the seat at column B, row 3).
+            </li>
             <li><strong>Block multiple areas:</strong> Separate entries with commas (e.g., <code>1, C, (B,3)</code>
                 blocks row 1, column C, and seat B3).</li>
         </ul>
@@ -552,7 +573,8 @@
         <h3>Exporting Your Seating Plan</h3>
         <p>When you're happy with your arrangement, you have two export options:</p>
         <ul>
-            <li><strong>Export as PNG:</strong> Downloads an image of your seating plan that you can print or share.</li>
+            <li><strong>Export as PNG:</strong> Downloads an image of your seating plan that you can print or share.
+            </li>
             <li><strong>Export Data:</strong> Downloads a <code>.json</code> datafile containing your full seating plan
                 data (student positions, blackouts, photos, etc.). You can reload this file later using the
                 "Upload SitYoAssDown Datafile" button to pick up right where you left off.</li>
@@ -737,7 +759,20 @@
             const cols = grid[0]?.length || 0;
 
             classHeader.textContent = classCode;
-            frontLabel.style.display = (rows > 0 && cols > 0) ? 'block' : 'none';
+
+            const frontPos = document.getElementById('front-position').value;
+            const gridContainer = document.getElementById('grid-container');
+            if (rows > 0 && cols > 0) {
+                frontLabel.style.display = 'block';
+                frontLabel.className = frontPos === 'bottom' ? 'front-bottom' : 'front-top';
+                if (frontPos === 'bottom') {
+                    gridContainer.appendChild(frontLabel);
+                } else {
+                    gridContainer.insertBefore(frontLabel, table);
+                }
+            } else {
+                frontLabel.style.display = 'none';
+            }
 
             let html = '<tr><th></th>';
             for (let c = 0; c < cols; c++) {
@@ -745,7 +780,14 @@
             }
             html += '</tr>';
 
-            for (let r = 0; r < rows; r++) {
+            const renderOrder = [];
+            if (frontPos === 'bottom') {
+                for (let r = rows - 1; r >= 0; r--) renderOrder.push(r);
+            } else {
+                for (let r = 0; r < rows; r++) renderOrder.push(r);
+            }
+
+            for (const r of renderOrder) {
                 html += `<tr><td class="row-header">${r + 1}</td>`;
                 for (let c = 0; c < cols; c++) {
                     const cellKey = `${r},${c}`;
@@ -990,7 +1032,8 @@
                 blackedOutCells: Array.from(blackedOutCells),
                 studentImages: studentImages,
                 imageMaxSize: imageMaxSize,
-                namesHiddenOnUpload: namesHiddenOnUpload
+                namesHiddenOnUpload: namesHiddenOnUpload,
+                frontPosition: document.getElementById('front-position').value
             };
 
             const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
@@ -1084,6 +1127,11 @@
                     document.getElementById('show-names-toggle').checked = false;
                 } else {
                     document.getElementById('show-names-toggle').checked = true;
+                }
+
+                // Restore front of class position
+                if (data.frontPosition) {
+                    document.getElementById('front-position').value = data.frontPosition;
                 }
 
                 selectedCell = null;
