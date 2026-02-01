@@ -623,8 +623,10 @@
         function parseCSV(text) {
             const lines = text.trim().split('\n');
             return lines.map(line => {
+                line = line.trim();
+                if (!line) return null;
                 const parts = line.split(',').map(p => p.trim());
-                if (parts.length >= 2) {
+                if (parts.length >= 2 && (parts[0] || parts[1])) {
                     return { lastName: parts[0], firstName: parts[1] };
                 }
                 return null;
